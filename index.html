@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>100 Days Love Matrix</title>
+<style>
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:Courier,monospace}
+  canvas{display:block}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+/* ===== 1. 聊天记录 ===== */
+const chatHistory = [
+  "2025-04-23 22:00 你说：今天算是第一天了哦",
+  "2025-04-23 22:00 我说：嘿嘿，嗯呢第一天",
+  "这次是牵手",
+  "下次就要摸腹肌了",
+  "okok",
+  "哈哈哈哈哈我开玩笑的",
+  "我紧张",
+  "你只管摸",
+  "好了",
+  "你一个月生活费多少",
+  "2000",
+  "每个月都不够花么",
+  "尼玛的",
+  "够的",
+  "上个月咋不够了",
+  "我不到啊[捂脸]",
+  "没事,以后不够,管我要",
+  "[害羞]",
+  "因为我也2000",
+  "哈哈哈，爱你[爱心]，但是",
+  "我觉得我还是要学会好好理财",
+  "不能钱没了就只管找你要啊",
+  "男生吃饭吃的多,可以理解",
+  "你对我太好了,还有,人美心善"
+
+
+  
+
+];
+
+/* ===== 2. 最终情话 ===== */
+const finalWords = "第100天，仍无限循环：while(true){ love++; }，一直爱你天雪";
+
+/* ===== 3. 生成明文 & 密文行 ===== */
+const plainLines = chatHistory.join("\n").split("\n");
+const cipherLines = plainLines.map(l => btoa(unescape(encodeURIComponent(l))));
+const finalPlainLines = [finalWords];
+const finalCipherLines = [btoa(unescape(encodeURIComponent(finalWords)))];
+const totalRows = plainLines.length + finalPlainLines.length;
+
+/* ===== 4. Canvas 初始化 ===== */
+const cvs = document.getElementById("c");
+const ctx = cvs.getContext("2d");
+let W, H;
+function resize(){ W=cvs.width=innerWidth; H=cvs.height=innerHeight; }
+addEventListener("resize", resize); resize();
+
+/* ===== 5. 字符雨参数 ===== */
+const fontSize = 18;
+const cols = Math.floor(W / fontSize);
+const drops = Array(cols).fill(1);
+const base64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+let revealCharIndex = 0;        // 已解密的字符总数
+const revealSpeed = 3;          // 每帧解密字符数
+
+/* ===== 6. 绘制函数 ===== */
+function draw(){
+  ctx.fillStyle="rgba(0,0,0,0.05)";
+  ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="#0f0";
+  ctx.font=fontSize+"px monospace";
+
+  /* 上半部：随机 base64 字符雨 */
+  for(let i=0;i<drops.length;i++){
+    const ch = base64Chars[Math.floor(Math.random()*base64Chars.length)];
+    ctx.fillText(ch, i*fontSize, drops[i]*fontSize);
+    if(drops[i]*fontSize>H && Math.random()>0.975) drops[i]=0;
+    drops[i]++;
+  }
+
+  /* 下半部：解密区 */
+  const startY = H - totalRows*fontSize;
+  let globalIdx = 0;
+
+  /* 聊天记录 */
+  for(let row=0;row<plainLines.length;row++){
+    const y = startY + row*fontSize;
+    const plain = plainLines[row];
+    const cipher = cipherLines[row];
+    const len = Math.min(plain.length, Math.max(0, revealCharIndex - globalIdx));
+    const visible = plain.slice(0, len) + cipher.slice(len);
+    ctx.fillText(visible, 0, y);
+    globalIdx += plain.length;
+  }
+
+  /* 最终情话 */
+  for(let row=0;row<finalPlainLines.length;row++){
+    const y = startY + (plainLines.length + row)*fontSize;
+    const plain = finalPlainLines[row];
+    const cipher = finalCipherLines[row];
+    const len = Math.min(plain.length, Math.max(0, revealCharIndex - globalIdx));
+    const visible = plain.slice(0, len) + cipher.slice(len);
+    ctx.fillText(visible, 0, y);
+    globalIdx += plain.length;
+  }
+
+  /* 推进解密 */
+  if(revealCharIndex < globalIdx) revealCharIndex += revealSpeed;
+}
+
+/* ===== 7. 启动 & 全屏 ===== */
+setInterval(draw, 33);
+addEventListener("keydown", e=>{
+  if(e.key.toLowerCase()==="f"){
+    document.fullscreenElement ? document.exitFullscreen()
+                                 : document.documentElement.requestFullscreen();
+  }
+});
+</script>
+</body>
+</html>
