@@ -50,6 +50,10 @@ const chatHistory = [
 
 /* ===== 2. 最终情话 ===== */
 const finalWords = "第100天，仍无限循环：while(true){ love++; }，一直爱你天雪";
+const MAX_ROWS = 5;               // 最多同时出现 5 行
+let visibleLines = [];            // 当前正在显示的 5 行
+let nextLineIdx = 0;              // 指向 chatHistory 的下一条
+
 
 /* ===== 3. 生成明文 & 密文行 ===== */
 const plainLines = chatHistory.join("\n").split("\n");
@@ -93,15 +97,35 @@ function draw(){
   let globalIdx = 0;
 
   /* 聊天记录 */
-  for(let row=0;row<plainLines.length;row++){
-    const y = startY + row*fontSize;
-    const plain = plainLines[row];
-    const cipher = cipherLines[row];
-    const len = Math.min(plain.length, Math.max(0, revealCharIndex - globalIdx));
-    const visible = plain.slice(0, len) + cipher.slice(len);
-    ctx.fillText(visible, 0, y);
-    globalIdx += plain.length;
-  }
+  /* === 循环字幕：最多 5 行 === */
+const lineHeight = fontSize;
+const bottomY = H - 5 * lineHeight;   // 5 行高区域
+
+/* 1. 如果当前不足 5 行且还有记录，就补一行 */
+while (visibleLines.length < MAX_ROWS && nextLineIdx < chatHistory.length) {
+  visibleLines.push({
+    plain: chatHistory[nextLineIdx],
+    cipher: btoa(unescape(encodeURIComponent(chatHistory[nextLineIdx]))),
+    revealed: 0
+  });
+  nextLineIdx = (nextLineIdx + 1) % chatHistory.length;   // 循环使用
+}
+
+/* 2. 逐字符解密并绘制 */
+for (let r = 0; r < visibleLines.length; r++) {
+  const line = visibleLines[r];
+  line.revealed = Math.min(line.plain.length, line.revealed + 1); // 每帧多解 1 字符
+  const txt = line.plain.slice(0, line.revealed) +
+              line.cipher.slice(line.revealed);
+  ctx.fillText(txt, 0, bottomY + r * lineHeight);
+}
+
+/* 3. 如果最上面一行已完全解密并停留够久，就移除它 */
+if (visibleLines.length && visibleLines[0].revealed === visibleLines[0].plain.length) {
+  // 停留 120 帧(≈4 秒)后顶掉；可改成任何数字
+  if (++visibleLines[0].stay > 120) visibleLines.shift();
+}
+
 
   /* 最终情话 */
   for(let row=0;row<finalPlainLines.length;row++){
