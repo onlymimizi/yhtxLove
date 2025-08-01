@@ -151,6 +151,23 @@ addEventListener("keydown", e=>{
   }
 });
 </script>
+  <!-- 背景音乐：放在 body 末尾，自动循环，默认静音 -->
+<audio id="bgm" loop preload="auto">
+  <source src="bgm.mp3" type="audio/mpeg">
+  你的浏览器不支持 audio 标签
+</audio>
+
+<script>
+/* 允许用户点任意键开启/关闭音乐 */
+const bgm = document.getElementById('bgm');
+window.addEventListener('keydown', e => {
+  if (e.key.toLowerCase() === 'm') {   // 按 M 键切换播放/暂停
+    bgm.paused ? bgm.play() : bgm.pause();
+  }
+});
+/* 如果希望自动播放（Chrome 需用户交互后），可以在这里 bgm.play() */
+</script>
+
 </body>
 </html>
 </script>
