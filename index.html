@@ -11,6 +11,11 @@
 <body>
 <canvas id="c"></canvas>
 <script>
+  const MAX_ROWS    = 5;           // 屏幕最多同时出现 5 行
+let visibleLines  = [];          // 正在显示的 5 行
+let nextLineIdx   = 0;           // 指向 chatHistory 的下一条
+let scrollOffset  = 0;           // Y 轴滚动像素
+
 /* ===== 1. 聊天记录 ===== */
 const chatHistory = [
   "2025-04-23 22:00 你说：今天算是第一天了哦",
@@ -97,50 +102,46 @@ function draw(){
   let globalIdx = 0;
 
   /* 聊天记录 */
-  /* === 循环字幕：最多 5 行 === */
+ /* === 向上滚动字幕：最多 5 行 === */
 const lineHeight = fontSize;
-const bottomY = H - 5 * lineHeight;   // 5 行高区域
+const bottomY = H - MAX_ROWS * lineHeight;
 
-/* 1. 如果当前不足 5 行且还有记录，就补一行 */
-while (visibleLines.length < MAX_ROWS && nextLineIdx < chatHistory.length) {
+/* 1. 如果当前不足 5 行，补一行 */
+while (visibleLines.length < MAX_ROWS + 1 && nextLineIdx < chatHistory.length) {
   visibleLines.push({
     plain: chatHistory[nextLineIdx],
     cipher: btoa(unescape(encodeURIComponent(chatHistory[nextLineIdx]))),
-    revealed: 0
+    revealed: 0,
+    stay: 0
   });
-  nextLineIdx = (nextLineIdx + 1) % chatHistory.length;   // 循环使用
+  nextLineIdx = (nextLineIdx + 1) % chatHistory.length;
 }
 
-/* 2. 逐字符解密并绘制 */
-for (let r = 0; r < visibleLines.length; r++) {
-  const line = visibleLines[r];
-  line.revealed = Math.min(line.plain.length, line.revealed + 1); // 每帧多解 1 字符
+/* 2. 每帧往下滚动 1 像素 */
+scrollOffset += 1;
+if (scrollOffset >= lineHeight) {
+  scrollOffset = 0;
+  visibleLines.shift();           // 顶掉最旧一行
+}
+
+/* 3. 逐字符解密并绘制 */
+ctx.save();
+ctx.beginPath();
+ctx.rect(0, bottomY, W, MAX_ROWS * lineHeight); // 只让字幕出现在这个矩形
+ctx.clip();
+
+for (let i = 0; i < visibleLines.length; i++) {
+  const line = visibleLines[i];
+  const y = bottomY + i * lineHeight - scrollOffset;
+
+  /* 解密进度 */
+  line.revealed = Math.min(line.plain.length, line.revealed + 1);
+
   const txt = line.plain.slice(0, line.revealed) +
               line.cipher.slice(line.revealed);
-  ctx.fillText(txt, 0, bottomY + r * lineHeight);
+  ctx.fillText(txt, 0, y);
 }
-
-/* 3. 如果最上面一行已完全解密并停留够久，就移除它 */
-if (visibleLines.length && visibleLines[0].revealed === visibleLines[0].plain.length) {
-  // 停留 120 帧(≈4 秒)后顶掉；可改成任何数字
-  if (++visibleLines[0].stay > 120) visibleLines.shift();
-}
-
-
-  /* 最终情话 */
-  for(let row=0;row<finalPlainLines.length;row++){
-    const y = startY + (plainLines.length + row)*fontSize;
-    const plain = finalPlainLines[row];
-    const cipher = finalCipherLines[row];
-    const len = Math.min(plain.length, Math.max(0, revealCharIndex - globalIdx));
-    const visible = plain.slice(0, len) + cipher.slice(len);
-    ctx.fillText(visible, 0, y);
-    globalIdx += plain.length;
-  }
-
-  /* 推进解密 */
-  if(revealCharIndex < globalIdx) revealCharIndex += revealSpeed;
-}
+ctx.restore();
 
 /* ===== 7. 启动 & 全屏 ===== */
 setInterval(draw, 33);
@@ -153,7 +154,7 @@ addEventListener("keydown", e=>{
 </script>
   <!-- 背景音乐：放在 body 末尾，自动循环，默认静音 -->
 <audio id="bgm" loop preload="auto">
-  <source src="张紫豪-可不可以.mgg" type="audio/mpeg">
+  <source src="张紫豪-可不可以.mp3" type="audio/mpeg">
   你的浏览器不支持 audio 标签
 </audio>
 
@@ -170,6 +171,7 @@ window.addEventListener('keydown', e => {
 
 </body>
 </html>
+
 
 
 
