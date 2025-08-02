@@ -12,9 +12,9 @@
 <canvas id="c"></canvas>
 <script>
   const MAX_ROWS    = 5;           // 屏幕最多同时出现 5 行
-let visibleLines  = [];          // 正在显示的 5 行
-let nextLineIdx   = 0;           // 指向 chatHistory 的下一条
-let scrollOffset  = 0;           // Y 轴滚动像素
+  let visibleLines  = [];          // 正在显示的 5 行
+  let nextLineIdx   = 0;           // 指向 chatHistory 的下一条
+  let scrollOffset  = 0;           // Y 轴滚动像素
 
 /* ===== 1. 聊天记录 ===== */
 const chatHistory = [
@@ -54,10 +54,7 @@ const chatHistory = [
 ];
 
 /* ===== 2. 最终情话 ===== */
-const finalWords = "第100天，仍无限循环：while(true){ love++; }，一直爱你天雪";
-const MAX_ROWS = 5;               // 最多同时出现 5 行
-let visibleLines = [];            // 当前正在显示的 5 行
-let nextLineIdx = 0;              // 指向 chatHistory 的下一条
+
 
 
 /* ===== 3. 生成明文 & 密文行 ===== */
@@ -171,6 +168,7 @@ window.addEventListener('keydown', e => {
 
 </body>
 </html>
+
 
 
 
