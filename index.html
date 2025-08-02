@@ -10,13 +10,9 @@
 </head>
 <body>
 <canvas id="c"></canvas>
-<script>
-  const MAX_ROWS    = 5;           // 屏幕最多同时出现 5 行
-  let visibleLines  = [];          // 正在显示的 5 行
-  let nextLineIdx   = 0;           // 指向 chatHistory 的下一条
-  let scrollOffset  = 0;           // Y 轴滚动像素
 
-/* ===== 1. 聊天记录 ===== */
+<script>
+/* 聊天记录 */
 const chatHistory = [
   "2025-04-23 22:00 你说：今天算是第一天了哦",
   "2025-04-23 22:00 我说：嘿嘿，嗯呢第一天",
@@ -26,7 +22,7 @@ const chatHistory = [
   "2025-04-30 6:16 你说：感觉下辈子重生有可能会成为一个蛋堡",
   "我说：这辈子蛋堡吃多了哈哈哈",
   "你说下辈子也可以成为你，以后吃你不比蛋堡少",
-  "2025 05-14 21:41 ",
+  "2025 05-14 21:41",
   "想你呢,[爱心][爱心][爱心]",
   "想我还是想摸我",
   "想你呢[爱心]",
@@ -38,7 +34,7 @@ const chatHistory = [
   "2025 06-18 14:10",
   "宝宝你走了我该怎么办啊",
   "我也会想你的宝宝",
-  "2025 07-09 22:57 ",
+  "2025 07-09 22:57",
   "洗完了,宝宝睡了吗",
   "还没,等你呢,其实,有点想要",
   "我也想干",
@@ -53,123 +49,81 @@ const chatHistory = [
   "我也爱你"
 ];
 
-/* ===== 2. 最终情话 ===== */
+/* 参数 */
+const MAX_ROWS = 5;
+let visibleLines = [];
+let nextLineIdx = 0;
+let scrollOffset = 0;
 
-
-
-/* ===== 3. 生成明文 & 密文行 ===== */
-const plainLines = chatHistory.join("\n").split("\n");
-const cipherLines = plainLines.map(l => btoa(unescape(encodeURIComponent(l))));
-const finalPlainLines = [finalWords];
-const finalCipherLines = [btoa(unescape(encodeURIComponent(finalWords)))];
-const totalRows = plainLines.length + finalPlainLines.length;
-
-/* ===== 4. Canvas 初始化 ===== */
-const cvs = document.getElementById("c");
-const ctx = cvs.getContext("2d");
+const cvs = document.getElementById('c');
+const ctx = cvs.getContext('2d');
 let W, H;
 function resize(){ W=cvs.width=innerWidth; H=cvs.height=innerHeight; }
-addEventListener("resize", resize); resize();
+addEventListener('resize', resize); resize();
 
-/* ===== 5. 字符雨参数 ===== */
 const fontSize = 18;
 const cols = Math.floor(W / fontSize);
 const drops = Array(cols).fill(1);
 const base64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-let revealCharIndex = 0;        // 已解密的字符总数
-const revealSpeed = 3;          // 每帧解密字符数
 
-/* ===== 6. 绘制函数 ===== */
 function draw(){
-  ctx.fillStyle="rgba(0,0,0,0.05)";
+  ctx.fillStyle='rgba(0,0,0,.05)';
   ctx.fillRect(0,0,W,H);
-  ctx.fillStyle="#0f0";
-  ctx.font=fontSize+"px monospace";
+  ctx.fillStyle='#0f0';
+  ctx.font=fontSize+'px monospace';
 
-  /* 上半部：随机 base64 字符雨 */
+  /* 字符雨 */
   for(let i=0;i<drops.length;i++){
-    const ch = base64Chars[Math.floor(Math.random()*base64Chars.length)];
-    ctx.fillText(ch, i*fontSize, drops[i]*fontSize);
-    if(drops[i]*fontSize>H && Math.random()>0.975) drops[i]=0;
+    const ch=base64Chars[Math.random()*base64Chars.length|0];
+    ctx.fillText(ch,i*fontSize,drops[i]*fontSize);
+    if(drops[i]*fontSize>H&&Math.random()>.975) drops[i]=0;
     drops[i]++;
   }
 
-  /* 下半部：解密区 */
-  const startY = H - totalRows*fontSize;
-  let globalIdx = 0;
+  /* 滚动字幕（最多 5 行） */
+  const lineHeight=fontSize;
+  const bottomY=H-MAX_ROWS*lineHeight;
 
-  /* 聊天记录 */
- /* === 向上滚动字幕：最多 5 行 === */
-const lineHeight = fontSize;
-const bottomY = H - MAX_ROWS * lineHeight;
-
-/* 1. 如果当前不足 5 行，补一行 */
-while (visibleLines.length < MAX_ROWS + 1 && nextLineIdx < chatHistory.length) {
-  visibleLines.push({
-    plain: chatHistory[nextLineIdx],
-    cipher: btoa(unescape(encodeURIComponent(chatHistory[nextLineIdx]))),
-    revealed: 0,
-    stay: 0
-  });
-  nextLineIdx = (nextLineIdx + 1) % chatHistory.length;
-}
-
-/* 2. 每帧往下滚动 1 像素 */
-scrollOffset += 1;
-if (scrollOffset >= lineHeight) {
-  scrollOffset = 0;
-  visibleLines.shift();           // 顶掉最旧一行
-}
-
-/* 3. 逐字符解密并绘制 */
-ctx.save();
-ctx.beginPath();
-ctx.rect(0, bottomY, W, MAX_ROWS * lineHeight); // 只让字幕出现在这个矩形
-ctx.clip();
-
-for (let i = 0; i < visibleLines.length; i++) {
-  const line = visibleLines[i];
-  const y = bottomY + i * lineHeight - scrollOffset;
-
-  /* 解密进度 */
-  line.revealed = Math.min(line.plain.length, line.revealed + 1);
-
-  const txt = line.plain.slice(0, line.revealed) +
-              line.cipher.slice(line.revealed);
-  ctx.fillText(txt, 0, y);
-}
-ctx.restore();
-
-/* ===== 7. 启动 & 全屏 ===== */
-setInterval(draw, 33);
-addEventListener("keydown", e=>{
-  if(e.key.toLowerCase()==="f"){
-    document.fullscreenElement ? document.exitFullscreen()
-                                 : document.documentElement.requestFullscreen();
+  /* 补行 */
+  while(visibleLines.length<MAX_ROWS+1&&nextLineIdx<chatHistory.length){
+    visibleLines.push({
+      plain:chatHistory[nextLineIdx],
+      cipher:btoa(unescape(encodeURIComponent(chatHistory[nextLineIdx]))),
+      revealed:0
+    });
+    nextLineIdx=(nextLineIdx+1)%chatHistory.length;
   }
-});
+
+  scrollOffset+=1;
+  if(scrollOffset>=lineHeight){
+    scrollOffset=0;
+    visibleLines.shift();
+  }
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0,bottomY,W,MAX_ROWS*lineHeight);
+  ctx.clip();
+
+  for(let i=0;i<visibleLines.length;i++){
+    const line=visibleLines[i];
+    const y=bottomY+i*lineHeight-scrollOffset;
+    line.revealed=Math.min(line.plain.length,line.revealed+1);
+    const txt=line.plain.slice(0,line.revealed)+line.cipher.slice(line.revealed);
+    ctx.fillText(txt,0,y);
+  }
+  ctx.restore();
+}
+
+setInterval(draw,33);
 </script>
-  <!-- 背景音乐：放在 body 末尾，自动循环，默认静音 -->
+
 <audio id="bgm" loop preload="auto">
-  <source src="张紫豪-可不可以.mp3" type="audio/mpeg">
-  你的浏览器不支持 audio 标签
+  <source src="bgm.mp3" type="audio/mpeg">
 </audio>
-
 <script>
-/* 允许用户点任意键开启/关闭音乐 */
-const bgm = document.getElementById('bgm');
-window.addEventListener('keydown', e => {
-  if (e.key.toLowerCase() === 'm') {   // 按 M 键切换播放/暂停
-    bgm.paused ? bgm.play() : bgm.pause();
-  }
-});
-/* 如果希望自动播放（Chrome 需用户交互后），可以在这里 bgm.play() */
+const bgm=document.getElementById('bgm');
+['click','keydown'].forEach(e=>window.addEventListener(e,()=>bgm.play(),{once:true}));
 </script>
-
 </body>
 </html>
-
-
-
-
-
